@@ -117,7 +117,25 @@ def update_post(id):
     except sqlite3.Error as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/posts/<int:id>', methods=['DELETE'])
+def delete_post(id):
+    conn = None
+    try:
+        conn = sqlite3.connect('blog.db')
+        cursor = conn.cursor()
+        cursor.execute("""DELETE FROM posts WHERE id = ?""", (id,))
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'No such post'}), 404
+        else:
+            conn.commit()
+            return jsonify({'message': "Post deleted successfully."}), 200
 
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
+
+    finally:
+        if conn:
+            conn.close()
 
 
 if __name__ == '__main__':
