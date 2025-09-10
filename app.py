@@ -62,5 +62,22 @@ def create_post():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/posts/<int:id>')
+def get_post(id):
+    try:
+        conn = sqlite3.connect('blog.db')
+        cursor = conn.cursor()
+        cursor.execute("""SELECT * FROM posts WHERE id = ?""", (id,))
+        row = cursor.fetchone()
+        if row is None:
+            return jsonify({'error': 'No such post'}), 404
+        post = {'id': row[0], 'title': row[1], 'content': row[2], 'author': row[3], 'timestamp': row[4]}
+        conn.close()
+        return jsonify(post), 200
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
