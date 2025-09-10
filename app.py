@@ -78,6 +78,47 @@ def get_post(id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/posts/<int:id>', methods=['PUT'])
+def update_post(id):
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid request'}), 400
+    try:
+        if 'title' not in data or not isinstance(data['title'], str) or data['title'].strip() == "":
+            return jsonify({'error': 'Invalid or missing title'}), 400
+        if 'content' not in data or not isinstance(data['content'], str) or data['content'].strip() == "":
+            return jsonify({'error': 'Invalid or missing content'}), 400
+        if 'author' not in data or not isinstance(data['author'], str) or data['author'].strip() == "":
+            return jsonify({'error': 'Invalid or missing author'}), 400
+
+        title = data['title']
+        content = data['content']
+        author = data['author']
+
+        conn = sqlite3.connect('blog.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM posts WHERE id = ?", (id,))
+        row = cursor.fetchone()
+        if row is None:
+            return jsonify({'error': 'No such post'}), 404
+        cursor.execute("UPDATE posts SET title = ?, content = ?, author = ? WHERE id = ?",(title, content, author, id))
+        conn.commit()
+        cursor.execute("SELECT * FROM posts WHERE id = ?", (id,))
+        updated_row = cursor.fetchone()
+        id = updated_row[0]
+        title = updated_row[1]
+        content = updated_row[2]
+        author = updated_row[3]
+        timestamp = updated_row[4]
+        conn.close()
+        return jsonify({'id': id, 'title': title, 'content': content, 'author': author, 'timestamp': timestamp}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
