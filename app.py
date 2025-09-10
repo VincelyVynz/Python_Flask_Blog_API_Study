@@ -138,5 +138,52 @@ def delete_post(id):
             conn.close()
 
 
+@app.route('/posts/<int:id>', methods=['PATCH'])
+def patch_post(id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid request'}), 400
+    updates = []
+    params = []
+    if 'title' in data and isinstance(data['title'], str) and data['title'].strip():
+        updates.append('title = ?')
+        params.append(data['title'])
+
+    if 'content' in data and isinstance(data['content'], str) and data['content'].strip():
+        updates.append('content = ?')
+        params.append(data['content'])
+
+    if 'author' in data and isinstance(data['author'], str) and data['author'].strip():
+        updates.append('author = ?')
+        params.append(data['author'])
+
+    if not updates:
+        return jsonify({'error': 'No valid updates'}), 400
+    conn = None
+    try:
+        conn = sqlite3.connect('blog.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM posts WHERE id = ?", (id,))
+        row = cursor.fetchone()
+        if row is None:
+            return jsonify({'error': 'No such post'}), 404
+
+        update_query = f"UPDATE posts SET {', '.join(updates)} WHERE id = ?"
+        params.append(id)
+
+        cursor.execute(update_query, params)
+        conn.commit()
+
+        cursor.execute("SELECT * FROM posts WHERE id = ?", (id,))
+        updated_row = cursor.fetchone()
+        return jsonify({'id': updated_row[0], 'title': updated_row[1], 'content': updated_row[2], 'author': updated_row[3], 'timestamp': updated_row[4]}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
